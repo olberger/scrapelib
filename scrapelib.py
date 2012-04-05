@@ -274,6 +274,9 @@ class Scraper(object):
                  retry_attempts=0,
                  retry_wait_seconds=5,
                  cache_obj=None,
+                 proxy_host=None,
+                 proxy_port=None,
+                 httplib2_proxy_type=None,                 
                  **kwargs):
         self.user_agent = user_agent
         self.headers = headers
@@ -314,7 +317,14 @@ class Scraper(object):
             self._cache_obj = cache_dir
             if cache_obj:
                 self._cache_obj = cache_obj
-            self._http = httplib2.Http(self._cache_obj, timeout=timeout)
+
+            if None not in (proxy_host, proxy_port, httplib2_proxy_type):
+                proxy_info = httplib2.ProxyInfo(httplib2_proxy_type, 
+                                                proxy_host, proxy_port)
+                self._http = httplib2.Http(self._cache_obj, timeout=timeout,
+                                           proxy_info=proxy_info)
+            else:
+                self._http = httplib2.Http(self._cache_obj, timeout=timeout)
         else:
             self._http = None
 
@@ -443,8 +453,16 @@ class Scraper(object):
                     if (str(e) ==
                         "'NoneType' object has no attribute 'makefile'"):
                         # when this error occurs, re-establish the connection
-                        self._http = httplib2.Http(self._cache_obj,
-                                                   timeout=self.timeout)
+                        if None not in (proxy_host, proxy_port, 
+                                        httplib2_proxy_type):
+                            proxy_info = httplib2.ProxyInfo(
+                                httplib2_proxy_type, proxy_host, proxy_port)
+                            self._http = httplib2.Http(self._cache_obj, 
+                                                       timeout=timeout,
+                                                       proxy_info=proxy_info)
+                        else:
+                            self._http = httplib2.Http(self._cache_obj, 
+                                                       timeout=timeout)
                         exception_raised = e
                     else:
                         raise
